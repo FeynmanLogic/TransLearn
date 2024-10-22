@@ -23,4 +23,4 @@ To run the project, install the following dependencies:
 
 ```bash
 pip install -r requirements.txt
-python transformer_model.py
+python transformer.py
