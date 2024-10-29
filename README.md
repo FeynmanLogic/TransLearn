@@ -20,7 +20,8 @@ This project builds upon these key papers:
 ## Requirements
 
 To run the project, install the following dependencies:
+Python 3.0, Pytorch
 
 ```bash
-pip install -r requirements.txt
+pip install torch 
 python transformer.py
