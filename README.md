@@ -12,9 +12,8 @@ This project builds upon these key papers:
 3. **Vaswani et al.** *Attention is All You Need*.
 
 ## Project Status
-- **Current Progress**: The transformer model has been implemented.
+- **Current Progress**: The transformer model has been implemented. SVM based active learning implemented for language translation.
 - **Next Steps**:
-  - Explore SVM-based active learning.
   - Investigate alternative knowledge distillation techniques beyond pruning.
 
 ## Requirements
