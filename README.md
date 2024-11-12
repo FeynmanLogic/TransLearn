@@ -1,36 +1,84 @@
 # Transformer-Based Model with Active Learning and Knowledge Distillation
 
-Transformers have become a core model for various sequential data tasks. While they show high accuracy, they come with significant drawbacks, including long training times and inference delays. In this project, we aim to alleviate these limitations by incorporating two key strategies:
+Transformers have become essential for sequential data tasks, offering high accuracy but at a computational cost. This project addresses these limitations through:
 
-1. **Active Learning**: Improves accuracy and robustness by selecting the most informative data points during training.
-2. **Knowledge Distillation**: Reduces the computational cost by transferring knowledge from a large, complex model to a smaller, more efficient one.
+1. **Active Learning**: Improves model efficiency by selecting the most informative samples during training.
+2. **Knowledge Distillation**: Transfers knowledge from a large, complex model (teacher) to a smaller, efficient model (student) to enhance performance in resource-constrained environments.
 
-## Why Should We Use Student-Teacher Model for Knowledge Distillation
+## Why Use the Student-Teacher Model for Knowledge Distillation?
 
-Knowledge distillation often aims to deploy the student model in scenarios where computational resources are limited (e.g., on mobile or edge devices). The student model, trained to mimic the teacher, captures most of the teacher's accuracy but is significantly smaller and faster, making it efficient for deployment in resource-constrained environments.
-
-The teacher-student approach captures and conveys the nuanced knowledge of the teacher through the "soft labels" or probability distributions over classes. Instead of just using hard labels (one-hot encoding), the soft targets provide the student model with a richer signal that includes information about the relationships between classes (e.g., how the teacher model perceives the similarity between different categories).
-This richer training signal helps the student model learn the underlying structure of the data more effectively, leading to better generalization.
-
-The soft labels produced by the teacher model offer additional information that the student model can use to avoid overfitting on the training data. This is because soft labels smooth out the targets, providing a form of regularization, especially in cases where the student model is simpler and more prone to overfitting.
-This regularization effect typically results in improved generalization on unseen data, allowing the student model to perform well even though it's less complex than the teacher.
+Knowledge distillation aims to deploy a smaller, faster student model that mimics a more complex teacher model's accuracy. The teacher-student approach provides the student model with nuanced knowledge through "soft labels," leading to improved generalization and robustness on unseen data. This approach is ideal for scenarios with limited computational resources, such as mobile and edge devices.
 
 ## Key Papers Referenced
-This project builds upon these key papers:
-1. **Burr Settles**. *Active Learning Literature Survey*. Computer Sciences Technical Report 1648, University of Wisconsin–Madison. 2009.
-2. **Geoffrey Hinton et al.** *Distilling the Knowledge in a Neural Network*.
-3. **Vaswani et al.** *Attention is All You Need*.
+
+This project builds on foundational works in active learning and knowledge distillation:
+1. **Burr Settles** - *Active Learning Literature Survey* (2009).
+2. **Geoffrey Hinton et al.** - *Distilling the Knowledge in a Neural Network*.
+3. **Vaswani et al.** - *Attention is All You Need*.
 
 ## Project Status
-We have implemented active learning, the binary cross entropy loss is steadily decreasing, but for some reason predicted accuracy is high.
-- **Next Steps**:
-  - Investigate alternative knowledge distillation techniques beyond pruning.
+
+Active learning and knowledge distillation have been implemented. WE TRADE OFF SOME LOSS FOR HIGH THROUGHPUT IN PERFORMANCE
 
 ## Requirements
 
-To run the project, install the following dependencies:
-Python 3.0, Pytorch
+To run the project, install Python 3.0+, PyTorch, and the required libraries:
 
 ```bash
-pip install torch 
-python transformer.py
+pip install torch transformers datasets
+```
+
+## Files and Execution Order
+
+1. **`transformer.py`**  
+   This file contains the Transformer model architecture used for both teacher and student models. Ensure this file is in the project directory before proceeding.
+
+2. **`training.py`**  
+   Trains the teacher model using active learning. The teacher model's parameters are specified, and the model is trained on the IMDB dataset. Active learning selects the most informative samples for efficient training.  
+   ```bash
+   python training.py
+   ```
+
+3. **`origi.py`**  
+   Distills knowledge from the trained teacher model to a smaller student model. The student model learns from the teacher's "soft labels," improving generalization on unseen data. This script saves the trained student model's weights.
+   ```bash
+   python origi.py
+   ```
+
+4. **`compare_student.py`**  
+   Measures the inference time for the student model. This script is useful for understanding the computational efficiency gained through knowledge distillation.
+   ```bash
+   python compare_student.py
+   ```
+
+5. **`vanilla_inference.py`**  
+   Evaluates the original (vanilla) model's inference time on the same data used for the student model. Comparing the results provides insights into the student model's performance improvements.
+   ```bash
+   python vanilla_inference.py
+   ```
+
+## Running Order and Results
+
+Run the scripts in the following order for optimal results:
+
+1. **Training the Teacher Model with Active Learning**
+   ```bash
+   python training.py
+   ```
+2. **Training the Student Model with Knowledge Distillation**
+   ```bash
+   python origi.py
+   ```
+3. **Comparing Inference Times**
+   - Measure the student model's inference time:
+     ```bash
+     python compare_student.py
+     ```
+   - Measure the vanilla model's inference time:
+     ```bash
+     python vanilla_inference.py
+     ```
+
+### Results Output
+
+Each script outputs key metrics to the console and saves them to `results.txt`, allowing easy comparison of inference times and model accuracy across configurations.
