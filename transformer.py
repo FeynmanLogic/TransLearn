@@ -3,16 +3,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
-# Define Hyperparameters
+
 d_model = 512
 num_heads = 8
 drop_prob = 0.1
-num_classes = 1  # Single output for binary classification with BCEWithLogitsLoss
+num_classes = 1  
 ffn_hidden = 2048
 num_layers = 5
 max_sequence_length = 200
 
-# Scaled Dot-Product Attention
+
 def scaled_dot_product(q, k, v):
     d_k = q.size(-1)
     scaled = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
@@ -20,7 +20,6 @@ def scaled_dot_product(q, k, v):
     values = torch.matmul(attention, v)
     return values, attention
 
-# Position-wise Feed Forward Layer
 class PositionwiseFeedForward(nn.Module):
     def __init__(self, d_model, hidden, drop_prob):
         super().__init__()
@@ -33,7 +32,6 @@ class PositionwiseFeedForward(nn.Module):
         x = self.linear2(x)
         return x
 
-# Multi-Head Attention Layer
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, num_heads):
         super().__init__()
@@ -47,7 +45,7 @@ class MultiHeadAttention(nn.Module):
     def forward(self, x):
         batch_size, seq_len, _ = x.size()
         
-        # Project the input to query, key, value (combined in one projection)
+        
         qkv = self.qkv_layer(x)  # Shape: [batch_size, seq_len, 3 * d_model]
         
         # Split qkv into q, k, v and reshape for multi-head attention
