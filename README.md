@@ -61,11 +61,11 @@ pip install torch transformers datasets
 
 Run the scripts in the following order for optimal results:
 
-1. **Training the Teacher Model with Active Learning**
+1. **Training the student model post active learning**
    ```bash
    python training.py
    ```
-2. **Training the Student Model with Knowledge Distillation**
+2. **Training the Vanilla Model**
    ```bash
    python origi.py
    ```
