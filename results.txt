@@ -1,0 +1,4 @@
+Inference Time Results
+Average inference time for Teacher model: 0.0686 seconds
+Average inference time for Student model: 0.0027 seconds
+Average inference time per sample: 0.001145 seconds
