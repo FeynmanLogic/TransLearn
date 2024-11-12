@@ -6,6 +6,7 @@ from datasets import load_dataset, Dataset
 from torch.utils.data import DataLoader, TensorDataset
 from transformer import TransformerClassifier
 import os
+import time
 
 # Set device
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -22,13 +23,11 @@ ffn_hidden = 2048
 num_heads = 8
 drop_prob = 0.1
 num_layers = 5
-num_classes = 1  # Binary classification with BCEWithLogitsLoss
+num_classes = 1
 
-# Initialize tokenizer and custom model
+# Initialize tokenizer and model
 tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
 vocab_size = tokenizer.vocab_size
-
-# Instantiate the model and move to device
 model = TransformerClassifier(d_model, ffn_hidden, num_heads, drop_prob, num_layers, num_classes, vocab_size=vocab_size).to(device)
 
 # Define directories to save the model
@@ -45,7 +44,7 @@ test_dataset = test_dataset.map(tokenize_function, batched=True)
 # Convert dataset to PyTorch tensors
 def format_dataset(dataset):
     input_ids = torch.tensor(dataset['input_ids'], dtype=torch.long)
-    labels = torch.tensor(dataset['label']).float().unsqueeze(1)  # Float for BCEWithLogitsLoss
+    labels = torch.tensor(dataset['label']).float().unsqueeze(1)
     return input_ids, labels
 
 train_inputs, train_labels = format_dataset(train_dataset)
@@ -101,9 +100,7 @@ def evaluate(model, dataloader):
             total_samples += labels.size(0)
     
     accuracy = total_correct / total_samples
-    percentage_correct = accuracy * 100
     print(f"Evaluation accuracy: {accuracy}")
-    print(f"Percentage of correct predictions: {percentage_correct}%")
     
     return accuracy
 
@@ -119,7 +116,6 @@ def uncertainty_sampling(model, dataset, n_samples=10):
             logits = model(input_ids)
             probs = torch.sigmoid(logits).squeeze()
             
-            # Calculate entropy-based uncertainty
             uncertainty = - (probs * torch.log(probs + 1e-8) + (1 - probs) * torch.log(1 - probs + 1e-8))
             uncertainties.append((idx, uncertainty.item()))
     
@@ -132,13 +128,14 @@ def uncertainty_sampling(model, dataset, n_samples=10):
     
     return uncertain_samples, uncertain_indices
 
-# Active Learning Loop
+# Active Learning Loop with Time Tracking
 num_iterations = 3
 labeled_data = train_dataset.select(range(25))  # Initial labeled data
 unlabeled_data = train_dataset.select(range(25, len(train_dataset)))  # Remaining data
 
 for iteration in range(num_iterations):
     print(f"Active Learning Iteration {iteration + 1}")
+    start_time = time.time()
     
     # Step 1: Train the model on the current labeled dataset
     train_inputs, train_labels = format_dataset(labeled_data)
@@ -162,6 +159,9 @@ for iteration in range(num_iterations):
     
     # Step 5: Remove selected uncertain samples from the unlabeled data
     unlabeled_data = unlabeled_data.filter(lambda _, idx: idx not in uncertain_indices, with_indices=True)
+    
+    end_time = time.time()
+    print(f"Time for Active Learning Iteration {iteration + 1}: {end_time - start_time:.2f} seconds")
     
     # Step 6: Save model after each active learning iteration
     torch.save(model.state_dict(), os.path.join(save_dir, f"transformer_iteration_{iteration + 1}.pt"))

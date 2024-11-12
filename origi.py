@@ -5,13 +5,14 @@ from transformers import RobertaTokenizer
 from datasets import load_dataset
 from torch.utils.data import DataLoader, TensorDataset
 from transformer import TransformerClassifier  # Assuming your model is saved in transformer.py
+import time
 
 # Set device
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Load IMDB dataset and sample points for quick training
+# Load IMDB dataset
 dataset = load_dataset('imdb')
-sample_size = 10000  # Small sample size for comparison
+sample_size = 10000  # Sample size for vanilla setup
 train_dataset = dataset["train"].shuffle(seed=42).select(range(sample_size))
 test_dataset = dataset["test"].shuffle(seed=42).select(range(int(sample_size * 0.1)))
 
@@ -38,12 +39,11 @@ test_dataset = test_dataset.map(tokenize_function, batched=True)
 # Convert dataset to PyTorch tensors
 def format_dataset(dataset):
     input_ids = torch.tensor(dataset['input_ids'], dtype=torch.long)
-    attention_mask = torch.tensor(dataset['attention_mask'], dtype=torch.float)  # Not used in this vanilla transformer
     labels = torch.tensor(dataset['label']).float().unsqueeze(1)  # Float for BCEWithLogitsLoss
-    return input_ids, attention_mask, labels
+    return input_ids, labels
 
-train_inputs, _, train_labels = format_dataset(train_dataset)
-test_inputs, _, test_labels = format_dataset(test_dataset)
+train_inputs, train_labels = format_dataset(train_dataset)
+test_inputs, test_labels = format_dataset(test_dataset)
 
 # Define DataLoader
 batch_size = 8
@@ -56,10 +56,12 @@ test_dataloader = DataLoader(test_data, batch_size=batch_size)
 optimizer = optim.AdamW(model.parameters(), lr=2e-5)
 loss_fn = nn.BCEWithLogitsLoss()
 
-# Training function
+# Training function with time tracking
 def train(model, dataloader):
     model.train()
     total_loss = 0
+    start_time = time.time()  # Start time for each epoch
+    
     for batch in dataloader:
         batch = tuple(t.to(device) for t in batch)
         inputs, labels = batch
@@ -71,7 +73,9 @@ def train(model, dataloader):
         optimizer.step()
 
     avg_loss = total_loss / len(dataloader)
+    end_time = time.time()  # End time for each epoch
     print(f"Training loss: {avg_loss}")
+    print(f"Training time for epoch: {end_time - start_time:.2f} seconds")
 
 # Evaluation function
 def evaluate(model, dataloader):
@@ -99,4 +103,5 @@ for epoch in range(num_epochs):
     evaluate(model, test_dataloader)
 
 # Save the trained model for comparison
-torch.save(model.state_dict(), "transformer_classifier.pth")
+torch.save(model.state_dict(), "transformer_classifier_vanilla.pth")
+print("Model saved as transformer_classifier_vanilla.pth")
