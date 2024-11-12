@@ -108,25 +108,21 @@ def evaluate(model, dataloader):
 def uncertainty_sampling(model, dataset, n_samples=10):
     model.eval()
     uncertainties = []
+    dataloader = DataLoader(dataset, batch_size=batch_size)
     
-    for idx, sample in enumerate(dataset):
-        input_ids = torch.tensor(sample['input_ids'], dtype=torch.long).unsqueeze(0).to(device)
-        
-        with torch.no_grad():
+    with torch.no_grad():
+        for batch in dataloader:
+            input_ids = batch['input_ids'].to(device)
             logits = model(input_ids)
             probs = torch.sigmoid(logits).squeeze()
-            
-            uncertainty = - (probs * torch.log(probs + 1e-8) + (1 - probs) * torch.log(1 - probs + 1e-8))
-            uncertainties.append((idx, uncertainty.item()))
+            entropy = - (probs * torch.log(probs + 1e-8) + (1 - probs) * torch.log(1 - probs + 1e-8))
+            uncertainties.extend(entropy.cpu().tolist())
     
-    # Sort samples by highest uncertainty
-    uncertainties.sort(key=lambda x: x[1], reverse=True)
-    uncertain_indices = [idx for idx, _ in uncertainties[:n_samples]]
-    
-    # Retrieve uncertain samples
+    # Get indices of top uncertain samples
+    uncertain_indices = sorted(range(len(uncertainties)), key=lambda i: uncertainties[i], reverse=True)[:n_samples]
     uncertain_samples = dataset.select(uncertain_indices)
-    
     return uncertain_samples, uncertain_indices
+
 
 # Active Learning Loop with Time Tracking
 num_iterations = 3
@@ -135,14 +131,16 @@ unlabeled_data = train_dataset.select(range(25, len(train_dataset)))  # Remainin
 
 for iteration in range(num_iterations):
     print(f"Active Learning Iteration {iteration + 1}")
-    start_time = time.time()
+
     
     # Step 1: Train the model on the current labeled dataset
     train_inputs, train_labels = format_dataset(labeled_data)
     train_data = TensorDataset(train_inputs, train_labels)
     train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    start_time = time.time()
     train(model, train_dataloader)
-    
+    end_time = time.time()
+    print(f"Time for Active Learning Training {iteration + 1}: {end_time - start_time:.2f} seconds")
     # Step 2: Evaluate the model on the test set
     evaluate(model, test_dataloader)
     
@@ -160,8 +158,7 @@ for iteration in range(num_iterations):
     # Step 5: Remove selected uncertain samples from the unlabeled data
     unlabeled_data = unlabeled_data.filter(lambda _, idx: idx not in uncertain_indices, with_indices=True)
     
-    end_time = time.time()
-    print(f"Time for Active Learning Iteration {iteration + 1}: {end_time - start_time:.2f} seconds")
+
     
     # Step 6: Save model after each active learning iteration
     torch.save(model.state_dict(), os.path.join(save_dir, f"transformer_iteration_{iteration + 1}.pt"))
